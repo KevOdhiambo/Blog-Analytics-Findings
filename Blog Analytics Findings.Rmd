@@ -1,0 +1,234 @@
+---
+title: "Blog Analytics Findings"
+author: "Kevin Odhiambo"
+date: "2022-07-20"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1. Understanding The Context
+An entrepreneur has created an online cryptography course and would want to advertise it on her blog. She currently targets audiences originating from various countries. 
+
+In the past, she ran ads to advertise a related course on the same blog and collected data in the process. She would now like to employ your services as a Data Science Consultant to help her identify which individuals are most likely to click on her ads. 
+
+## 2.Specifying the Analysis question
+Identify which characteritics sets out the individuals who click on Ads on the Cryptography course blog.
+
+## 3. Metrics of Success
+I'm able to clearly identify which individuals are most likely to click on ads using the provided data.
+
+## 4. Recording the Experiment Design 
+1. Data loading and overview
+2. Data Cleaning
+3. Univariate analysis
+4. Bivariate analysis
+5. Summary of findings
+
+## a. Loading Libraries
+```{r}
+library(tidyverse)
+library(data.table)
+library(ggplot2)
+library(lattice)
+library(RColorBrewer)
+library(ggcorrplot)
+```
+
+## Data Loading and Overview
+```{r}
+#import my data set
+ads <- read.csv("CustomerAds.csv", header=TRUE, sep =",")
+ads
+```
+
+##Data Viewing
+```{r}
+#view first entries in the dataset
+head(ads)
+```
+
+```{r}
+#view the last entries in the dataset
+tail(ads)
+```
+
+```{r}
+#check number of rows and columns
+
+print(dim(ads)) 
+
+#there are 1000 rows and 10 column in our dataset
+```
+
+```{r}
+#check the data set statistical summary
+summary(ads)
+```
+
+```{r}
+#check the column datatypes in the data set
+sapply(ads, class)
+```
+
+
+## 2. Data Cleaning
+```{r}
+#check for missing values in our data set
+colSums(is.na(ads))
+
+#there are no missing values in the data set
+```
+
+
+```{r}
+#checking for duplicates
+distinct(ads)
+
+#most of the entries in the data set are similar, hence we will ignore them as duplicates
+```
+
+```{r}
+#checking for outliers using box plots on numerical variables
+Daily.Time.Spent.on.Site <- ads$Daily.Time.Spent.on.Site
+Age <- ads$Age
+Daily.Internet.Usage <- ads$Daily.Internet.Usage
+Area.Income <- ads$Area.Income
+
+
+boxplot(Daily.Time.Spent.on.Site,Age, Daily.Internet.Usage,Area.Income,
+        main = "Boxplots Checking for Outliers",
+        at = c(1,2,3,4),
+        names = c("Daily.Time.Spent.on.Site", "Age","Daily.Internet.Usage","Area.Income"),
+        las = 2,
+        col = c("orange","red","blue","green"),
+        border = "brown",
+        horizontal = TRUE,
+        notch = TRUE
+)
+
+#from the resulting plots there are outliers in the Area Income Variables. 
+#Age, Daily Internet Usage, and Daily Time spent on site have no outliers.
+```
+
+```{r}
+#plot showing no outliers from the other numerical variables
+Daily.Time.Spent.on.Site <- ads$Daily.Time.Spent.on.Site
+Age <- ads$Age
+Daily.Internet.Usage <- ads$Daily.Internet.Usage
+
+
+boxplot(Daily.Time.Spent.on.Site,Age, Daily.Internet.Usage,
+        main = "Boxplots Checking for Outliers",
+        at = c(1,2,3),
+        names = c("Daily.Time.Spent.on.Site", "Age","Daily.Internet.Usage"),
+        las = 2,
+        col = c("orange","red","blue"),
+        border = "brown",
+        horizontal = TRUE,
+        notch = TRUE
+)
+
+#from the resulting plots there are no outliers
+
+```
+## 3. Univariate And Bivariate Analysis
+
+```{r}
+# Distribution of individuals who clicked and did not click on ads
+table(ads$`Clicked.on.Ad`)
+
+#500 people clicked on ads(1) and 500 people did not click on ads(0). #There is no class imbalance
+```
+
+
+
+```{r}
+# frequency table of countries where individuals clicked on ads
+country_freq <- sort(table(ads[ads$`Clicked.on.Ad`==1,]$Country), decreasing = T)%>% as.data.frame() 
+country_freq[country_freq$Freq > 2,]
+
+#from the distribution table, Australia, Ethiopia and Turkey (7) had the mot individuals clicking on ads.
+```
+
+```{r}
+# Age distribution
+
+par(mfrow=c(1, 2))
+hist(ads[ads$`Clicked.on.Ad` == 1,]$Age, xlab = 'Age', main = 'Clicked.on.ads' )
+hist(ads[ads$`Clicked.on.Ad` == 0,]$Age, xlab = 'Age', main = 'Did not click on ads' )
+
+#those between ages 40 to 45 were the majority who clicked on ads. again, those who did not click on ads are between ages 30 to 35.
+```
+
+```{r}
+#Gender Distribution
+gender <- subset(ads, select = c("Male", "Clicked.on.Ad"))
+gender %>% group_by(Male,`Clicked.on.Ad`)%>% summarise(sum_of_individuals = n())
+
+#250 males(1) did not click on ads and 231 males clicked on ads. 
+
+#On the other hand, 250 females(class 0) did not click on ads while 269 females clicked on the ads.
+```
+
+```{r}
+#Time spent on site distribution
+par(mfrow=c(1, 2))
+hist(ads[ads$`Clicked.on.Ad` == 1,]$`Daily.Time.Spent.on.Site`, xlab = 'Daily time on site', main = 'Clicked on ads' )
+hist(ads[ads$`Clicked.on.Ad` == 0,]$`Daily.Time.Spent.on.Site`, xlab = 'Daily time on site', main = 'Did not click on ads' )
+
+#most of those who clicked on ads spent about 40 to 45 minutes on the site, while those who did not click on ads had about 80 to 85 minutes which is longer timeframe.
+```
+
+```{r}
+#Daily Internet Usage Distribution
+par(mfrow=c(1, 2))
+hist(ads[ads$`Clicked.on.Ad` == 1,]$`Daily.Internet.Usage`, xlab = 'Daily internet usage', main = 'Clicked on ads' )
+hist(ads[ads$`Clicked.on.Ad` == 0,]$`Daily.Internet.Usage`, xlab = 'Daily internet usage', main = 'Did not click on ads' )
+
+#People with daily internet usage between 100 to 150 clicked on ads wile those with daily internet sage between 220 to 240 did not. 
+```
+
+
+```{r}
+#Area Income Distribution
+par(mfrow=c(1, 2))
+hist(ads[ads$`Clicked.on.Ad` == 1,]$`Area.Income`,xlab = 'Area Income', main = 'Clicked on ads' )
+hist(ads[ads$`Clicked.on.Ad` == 0,]$`Area.Income`, xlab = 'Area Income', main = 'Did not click on ads' )
+
+#Those with an Area Income of between 50000 to 550000 clicked on ads, while those with an Area income of between 60000 to 65000 did not.
+```
+
+
+##Correlation between numerical variables and Clicked on Ads
+```{r}
+#Plotting Heat Map Showing Correlation between Numerical Variable with the target variable(Clicked on Ads)
+num_var <- ads %>%
+  select_if(is.numeric) %>%
+  select(Daily.Time.Spent.on.Site, Age, Area.Income,Daily.Internet.Usage,Clicked.on.Ad)
+
+# Calculate the correlations
+corr <- cor(num_var, use = "complete.obs")
+
+ggcorrplot(round(corr, 2), 
+           type = "full", lab = T)
+
+#Age, had a positive correlation with ads clicked on the site. 
+#Daily Internet Usage, Area Income, and Daily Time Spent on Site had negative correlation with Clicked on Ad.
+```
+
+
+## 4. Conclusion and Summary
+To increase ad clicking, the blog owner should target people who are:
+  1.  located in : Australia,Ethiopia,Turkey,Liberia,Liechtenstein,South Africa,Afghanistan,France,Hungary,
+  2. Females. 269 Females from the data set clicked on Ads
+  3. the ads should target those between ages 35 and 45 also, we noted that Age is a key factor from the correlation heatmap.
+  4. who spend 40 to 50 minutes daily on the site
+  5. Those who have an area income of between 45000 to 55000
+  6. Uses the internet for at least 100 to 150 minutes daily
+
+when the blog owner is able to tailor her cryptography course blog using proper AI tools like SurferSEO for ranking purposes to meet those measures she is more likely to have more people clicking on ads.
+
